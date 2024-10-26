@@ -1,6 +1,10 @@
 /*
  * GPT2 Implementation using CPP
- */
+ *
+ *
+ * Reference: Andrej Karpathy llm.c: https://github.com/karpathy/llm.c
+
+*/
 
 // CPP libraries
 
