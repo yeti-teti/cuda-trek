@@ -676,37 +676,44 @@ void lstm_zero_grad(LSTM* model) {
     }
 }
 
+
 void matmul_backward(float* dinp, float* dweight, float* dbias, float* dout, float* inp, float* weight, int B, int T, int C, int OC) {
     // Backward into inp
-    for (int b = 0; b < B; b++) {
-        for (int t = 0; t < T; t++) {
-            float* dout_bt = dout + b * T * OC + t * OC;
-            float* dinp_bt = dinp + b * T * C + t * C;
-            for (int o = 0; o < OC; o++) {
-                float* w_col = weight + o * C;
-                float d = dout_bt[o];
-                for (int i = 0; i < C; i++) {
-                    dinp_bt[i] += w_col[i] * d;
+    if (inp != NULL) {
+        for (int b = 0; b < B; b++) {
+            for (int t = 0; t < T; t++) {
+                float* dout_bt = dout + b * T * OC + t * OC;
+                float* dinp_bt = dinp + b * T * C + t * C;
+                for (int o = 0; o < OC; o++) {
+                    float* w_col = weight + o * C;
+                    float d = dout_bt[o];
+                    for (int i = 0; i < C; i++) {
+                        dinp_bt[i] += w_col[i] * d;
+                    }
                 }
             }
         }
     }
-    // Backward into weight and bias
+
+    // Backward into weight and bias (always needed even if inp is NULL)
     for (int b = 0; b < B; b++) {
         for (int t = 0; t < T; t++) {
             float* dout_bt = dout + b * T * OC + t * OC;
-            float* inp_bt = inp + b * T * C + t * C;
+            float* inp_bt = (inp != NULL) ? inp + b * T * C + t * C : NULL;
             for (int o = 0; o < OC; o++) {
                 float d = dout_bt[o];
                 float* dw_col = dweight + o * C;
                 if (dbias != NULL) { dbias[o] += d; }
-                for (int i = 0; i < C; i++) {
-                    dw_col[i] += inp_bt[i] * d;
+                if (inp_bt != NULL) {
+                    for (int i = 0; i < C; i++) {
+                        dw_col[i] += inp_bt[i] * d;
+                    }
                 }
             }
         }
     }
 }
+
 
 void lstm_backward(LSTM* model) {
     int B = model->batch_size;
@@ -875,6 +882,7 @@ void lstm_backward(LSTM* model) {
     free(dc_next);
 }
 
+// AdamW 
 void lstm_update(LSTM* model, float learning_rate, float beta1, float beta2, float eps, float weight_decay, int t) {
     // Initialize optimizer buffers if not already done
     if (model->m_memory == NULL) {
@@ -1029,3 +1037,4 @@ int main() {
 }
 
 #endif
+
